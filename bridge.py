@@ -2,6 +2,7 @@ import asyncio
 import logging
 from telethon import TelegramClient, events
 from telethon.errors import FloodWaitError
+from aiohttp import web  # NEW: For dummy health check
 
 # ========================== CONFIG ==========================
 API_ID = 28328622
@@ -22,6 +23,19 @@ bot_client = TelegramClient('bot_session', API_ID, API_HASH)
 user_client = TelegramClient('user_session', API_ID, API_HASH)
 
 bot_client.flood_sleep_threshold = 60 * 60
+
+# NEW: Dummy health check for Back4app
+async def health_check(request):
+    return web.Response(text="OK")  # Simple response to pass health check
+
+async def start_http_server():
+    app = web.Application()
+    app.add_routes([web.get('/', health_check)])  # Or /health
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', 80)  # Listen on port 80
+    await site.start()
+    logging.info("✅ Dummy HTTP server started for health check")
 
 # ======================= /START =======================
 @bot_client.on(events.NewMessage(pattern='/start'))
@@ -54,7 +68,10 @@ async def bridge_handler(event):
 async def main():
     await bot_client.start(bot_token=BOT_TOKEN)
     await user_client.start()
-    
+
+    # NEW: Start dummy server in background
+    asyncio.create_task(start_http_server())
+
     print("\n" + "="*60)
     print("🔥 BACK4APP BRIDGE IS LIVE (FREE TIER)")
     print(f"Listening to bot: {SOURCE_BOT_ID}")
