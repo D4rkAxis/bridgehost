@@ -14,3 +14,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Start your bridge
 CMD ["python", "bridge.py"]
+
+EXPOSE 80
